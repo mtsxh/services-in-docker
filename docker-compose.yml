@@ -1,0 +1,84 @@
+services:
+    webdav:
+        container_name: webdav
+        build:
+            context: ./webdav
+        volumes:
+            - ${WEBDAV_ROOT}:/data
+            - ./config:/config
+        environment:
+            - PUID=501
+            - PGID=20
+            - TZ=America/Toronto
+            - WEBDAV_USERNAME=${WEBDAV_USERNAME}
+            - WEBDAV_PASSWORD=${WEBDAV_PASSWORD}
+            - SERVER_NAMES=${SERVER_NAMES}
+            - TIMEOUTS_S=1200 # these are seconds
+            - CLIENT_MAX_BODY_SIZE=2400M # must end with M(egabytes) or G(igabytes)
+        ports:
+            - 127.0.0.1:32080:80
+        networks:
+            - webservice
+
+    nginx:
+        container_name: nginx
+        build: ./web
+        environment:
+            - DOMAINS=${DOMAINS}
+            - CERTBOT_EMAILS=${CERTBOT_EMAILS}
+            - CERTBOT_TEST_CERT=1
+            - CERTBOT_RSA_KEY_SIZE=4096
+        volumes:
+        - ${WEB_CONF}/sites:/etc/nginx/sites
+        - ${WEB_CONF}/letsencrypt:/etc/letsencrypt
+        - ${WEB_CONF}/certbot:/var/www/certbot
+        - ./web/vhosts:/etc/nginx/vhosts
+        - ${WEB_ROOT}:/var/www/html
+        - ${HUGO_ROOT}/public:/var/www/html/wb/public
+        ports:
+        - "80:80"
+        - "443:443"
+        restart: unless-stopped
+        depends_on:
+                - webdav
+        networks:
+            - webservice
+
+    certbot:
+        build: ./certbot
+        environment:
+            - DOMAINS=${DOMAINS}
+            - CERTBOT_EMAILS=${CERTBOT_EMAILS}
+            - CERTBOT_TEST_CERT=1
+            - CERTBOT_RSA_KEY_SIZE=4096
+        volumes:
+        - ${WEB_CONF}/letsencrypt:/etc/letsencrypt
+        - ${WEB_CONF}/certbot:/var/www/certbot
+        depends_on:
+                - nginx
+        networks:
+            - webservice
+
+    crawler:
+        build: ./crawler
+        volumes:
+        - ${CRAWLER_ROOT}/data:/mnt/crawler/data
+        - ${CRAWLER_ROOT}/log:/mnt/crawler/log
+        - ${CRAWLER_ROOT}/config:/mnt/crawler/config
+        - ${HUGO_ROOT}/log:/mnt/hugo/logs
+        - ${HUGO_ROOT}/static:/app/weibo-site/static
+        - ${HUGO_ROOT}/post:/app/weibo-site/content/post
+        - ${HUGO_ROOT}/public:/app/weibo-site/public
+        networks:
+            - webservice
+
+    cron:
+        build: ./cron
+        volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - ./:/workdir:ro
+        restart: unless-stopped
+#Docker Networks
+networks:
+  webservice:
+    driver: bridge
