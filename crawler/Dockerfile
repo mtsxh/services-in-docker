@@ -21,7 +21,7 @@ RUN apt install ./hugo.deb
 RUN rm ./hugo.deb
 
 WORKDIR /app/weibo-crawler
-RUN pip install -r requirements.txt
+RUN pip install -U -r requirements.txt
 
 WORKDIR /app/weibo-site
 RUN rmdir themes/hugo-clarity
