@@ -76,6 +76,7 @@ services:
         build: ./cron
         volumes:
         - /var/run/docker.sock:/var/run/docker.sock
+        - ${ENV_FILE}:/docker_env
         - ./:/workdir:ro
         restart: unless-stopped
 #Docker Networks
