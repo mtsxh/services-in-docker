@@ -45,6 +45,7 @@ services:
             - webservice
 
     certbot:
+        container_name: certbot
         build: ./certbot
         environment:
             - DOMAINS=${DOMAINS}
@@ -54,12 +55,11 @@ services:
         volumes:
         - ${WEB_CONF}/letsencrypt:/etc/letsencrypt
         - ${WEB_CONF}/certbot:/var/www/certbot
-        depends_on:
-                - nginx
         networks:
             - webservice
 
     crawler:
+        container_name: crawler
         build: ./crawler
         volumes:
         - ${CRAWLER_ROOT}/data:/mnt/crawler/data
@@ -73,12 +73,15 @@ services:
             - webservice
 
     cron:
+        container_name: cron
         build: ./cron
         volumes:
         - /var/run/docker.sock:/var/run/docker.sock
         - ${ENV_FILE}:/docker_env
         - ./:/workdir:ro
         restart: unless-stopped
+        networks:
+            - webservice
 #Docker Networks
 networks:
   webservice:
